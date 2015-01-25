@@ -1,0 +1,126 @@
+---
+title: "PmlReport"
+output: html_document
+---
+1. Preparing. Loading libraries, set seed and working directory.
+
+
+```{r}
+library(ggplot2)
+library(caret)
+set.seed(123)
+setwd("/Users/mamadashi/Data sciense/pml/R")
+```
+2. Reading data.
+```{r}
+data <- read.csv("pml-training.csv")
+predict <- read.csv("pml-testing.csv")
+```
+
+3. Spliting data into training/test
+
+```{r}
+index <- createDataPartition(y = data$classe, p = 0.95, list = FALSE)
+train <- data[index,]
+test <- data[-index,]
+```
+
+4. Analyse dataset. 
+  Identification of near zero variance predictors.
+```{r}
+  nzv <- nearZeroVar(train, saveMetrics = TRUE)
+  subset(nzv, nzv==FALSE)
+```
+Feature Plot
+```{r}
+featurePlot(x = train[, c("roll_belt",
+                          "pitch_belt",
+                          "yaw_belt",
+                          "roll_forearm",
+                          "pitch_forearm",
+                          "yaw_forearm",
+                          "roll_dumbbell",
+                          "pitch_dumbbell",
+                          "yaw_dumbbell",
+                          "roll_arm",
+                          "pitch_arm",
+                          "yaw_arm")], y= train$class, plot="pairs");
+```
+
+
+5. Building some models on training set.
+ Use "k-nearest neighbors" method as most suitable for classification.
+ Model 1. Use some predictors that looks like more valuable
+```{r}
+fit1 <-  train(classe ~ roll_belt+
+               pitch_belt+
+               yaw_belt+
+               roll_forearm+
+               pitch_forearm+
+               yaw_forearm+
+               roll_arm+
+               pitch_arm+
+               yaw_arm
+             , data = data, method = "knn")
+fit1
+plot(fit1)
+```
+Model 2. Adding more predictors.
+```{r}
+
+fit2 <- train(classe ~ roll_belt+
+               pitch_belt+
+               yaw_belt+
+               roll_forearm+
+               pitch_forearm+
+               yaw_forearm+
+               roll_dumbbell+
+               pitch_dumbbell+
+               yaw_dumbbell+
+               roll_arm+
+               pitch_arm+
+               yaw_arm
+             , data = data, method = "knn")
+fit2
+plot(fit2)
+```
+
+Model 3. Using preprocessing.
+
+```{r}
+fit3 <- train(classe ~ roll_belt+
+               pitch_belt+
+               yaw_belt+
+               roll_forearm+
+               pitch_forearm+
+               yaw_forearm+
+               roll_dumbbell+
+               pitch_dumbbell+
+               yaw_dumbbell+
+               roll_arm+
+               pitch_arm+
+               yaw_arm
+             , data = train, method = "knn", preProcess =
+               c("center","scale"))
+fit3
+plot(fit3)
+```
+
+6.Test with test data.
+
+Model 3 is the best one, so test it with test data.
+
+```{r}
+r <- predict(fit, newdata = test)
+cm <- confusionMatrix(r, test$classe)
+cm
+
+```
+
+7. Predict
+```{r}
+r <- predict(fit, newdata = predict)
+predict[, "classe"] <- r
+predict[, c("problem_id", "classe")]
+```
+
